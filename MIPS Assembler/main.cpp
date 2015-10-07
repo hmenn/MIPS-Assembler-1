@@ -10,6 +10,7 @@
 #include <fstream>
 #include <string>
 #include <string.h>
+#include <stdlib.h>
 using namespace std;
 
 // data structures
@@ -29,7 +30,7 @@ int32_t datasection[1000];
 int datasectionindex = 0;
 
 // functions
-void scanLabels(char *filename, int datasize);
+void scanLabels(char *filename);
 int countDataSection(char *filename);
 
 void assembleLine(char *line);
@@ -41,28 +42,39 @@ void makeJ_type(int op, int addr);
 int regToInt(char *reg);
 int labelToIntAddr(char *label);
 int immToInt(char *immediate);
-
-
+char *int2bin(int a, char *buffer, int buf_size);
 
 /************************ MAIN ************************/
 
 
 int main(int argc, const char * argv[]) {
-    // insert code here...
+    char * dir = getcwd(NULL, 0); // Platform-dependent, see reference link below
+    printf("Current dir: %s\n", dir);
     
+    
+    
+    
+    /*
     if (argv[1] == NULL) {
         printf("Please type in input file name.\n");
         return 0;
     }
-    char *filename;
-    strcpy(filename, argv[1]);
+     */
+    char filename[20];
+    //strcpy(filename, argv[1]);
+    
+    //strcpy(filename, "example_mod.s");
+    //strcpy(filename, "example2_mod.s");
+    //strcpy(filename, "example3.s");
+    strcpy(filename, "example4.s");
+    
     // 1. Scan Labels and find its address locations
     // 2. Assemble instructions with the Labels;
     // 3. Get Number of instruction (size of .text)
     // 4. Output the result.
     
     int dataSectionSize = countDataSection(filename);
-    scanLabels(filename, dataSectionSize);
+    scanLabels(filename);
     
     string line;
     ifstream inputfile(filename);
@@ -77,26 +89,25 @@ int main(int argc, const char * argv[]) {
         
         while (getline(inputfile, line) )
         {
-            if (strstr(line.c_str(), ": ") != NULL) {
+            if (strstr(line.c_str(), ":") != NULL) {
                 continue;
             } else {
-                char *code;
-                strcpy(code, line.c_str());
-                assembleLine(code);
+                char codeline[100];
+                strcpy(codeline, line.c_str());
+                assembleLine(codeline);
             }
         }
         inputfile.close();
     }
-    else cout << "Unable to open file";
+    else cout << "Unable to open file\n";
     
     
     /* Writing section */
-    dataSectionSize *= 4;
-    
+    /*
     ofstream outputfile("output.o", ios::out | ios::binary);
     outputfile.put(instr_index*4); // text section size
-    outputfile.put(dataSectionSize); // data section size
-    
+    outputfile.put(dataSectionSize*4); // data section size
+
     int i;
     for (i=0; i<instr_index; i++) {
         outputfile.put(instructions[i]);
@@ -105,13 +116,33 @@ int main(int argc, const char * argv[]) {
         outputfile.put(datasection[i]);
     }
     outputfile.close();
-   
+    */
+    
+    FILE f = *fopen("output.o", "w");
+    char binary[40];
+    int2bin(instr_index*4, binary, 32);
+    fprintf(&f, "%s", binary);
+    int2bin(dataSectionSize*4, binary, 32);
+    fprintf(&f, "%s", binary);
+    
+    int i;
+    for (i=0; i<instr_index; i++) {
+        int2bin(instructions[i], binary, 32);
+        fprintf(&f, "%s", binary);
+    }
+    for (i=0; i<datasectionindex; i++) {
+        int2bin(datasection[i], binary, 32);
+        fprintf(&f, "%s", binary);
+    }
+    //fprintf(&f, "\n");
+    fclose(&f);
+    
     return 0;
 }
 
 
-void scanLabels(char *filename, int datasize) {
-    int datasizecnt = datasize;
+void scanLabels(char *filename) {
+    int datasizecnt = 0;
     int instruction_count = 0;
     
     string line;
@@ -132,8 +163,8 @@ void scanLabels(char *filename, int datasize) {
                 char temp[100];
                 strcpy(temp, line.c_str());
                 strcpy(newLabel.name , strtok(temp,":"));
-                newLabel.location = 0x10000000+(datasizecnt-1)*4;
-                datasizecnt--;
+                newLabel.location = 0x10000000+(datasizecnt)*4;
+                datasizecnt++;
                 label_list[labelindex++]=newLabel;
             }
             if (strstr(line.c_str(),".text") != NULL){
@@ -142,20 +173,20 @@ void scanLabels(char *filename, int datasize) {
         }
         // Labels inside .text section (function labels)
         while (getline(inputfile, line)) {
-            if (strstr(line.c_str(), ": ") != NULL) {
+            if (strstr(line.c_str(), ":") != NULL) {
                 label newLabel;
                 char temp[100];
                 strcpy(temp, line.c_str());
                 strcpy(newLabel.name , strtok(temp,":"));
-                newLabel.location = 0x400000 + (instruction_count-1)*4;
+                newLabel.location = 0x400000 + instruction_count*4;
                 label_list[labelindex++]=newLabel;
-            } else if (strstr(line.c_str(), "la") != NULL) {
+            } else {
                 char temp[100];
                 strcpy(temp, line.c_str());
                 
                 char * one;
                 char * two;
-                char * three;
+                char * three = NULL;
                 char key[] = " ,\t";
                 one = strtok(temp, key);
                 if(one != NULL)
@@ -163,23 +194,23 @@ void scanLabels(char *filename, int datasize) {
                 if(two != NULL)
                     three = strtok(NULL,key);
                 
-                int location = labelToIntAddr(three);
-                
-                
-                if ((location & 65535) == 0) {          // if lower 16bit address is 0x0000
-                    instruction_count++;                // lui instruction
+                if (strcmp(one, "la") == 0){
+                    int location = labelToIntAddr(three);
+                    if ((location & 65535) == 0) {          // if lower 16bit address is 0x0000
+                        instruction_count++;                // lui instruction
+                    } else {
+                        instruction_count += 2;             // lui instruction + ori instruction
+                    }
                 } else {
-                    instruction_count += 2;             // lui instruction + ori instruction
+                    instruction_count++;
                 }
-            } else {
-                instruction_count++;
             }
         }
         
         
         inputfile.close();
     }
-    else cout << "Unable to open file";
+    else cout << "Unable to open file\n";
 }
 
 
@@ -221,7 +252,7 @@ int countDataSection(char *filename) {
                     three = strtok(NULL, " \t");
                     datasection[datasectionindex++] = immToInt(three);
                 } else {
-                    one = strtok(NULL, " \t");
+                    one = strtok(temp, " \t");
                     two = strtok(NULL, " \t");
                     datasection[datasectionindex++] = immToInt(two);
                 }
@@ -230,7 +261,7 @@ int countDataSection(char *filename) {
         }
         inputfile.close();
     }
-    else cout << "Unable to open file";
+    else cout << "Unable to open file\n";
     
     return count;
 }
@@ -262,7 +293,7 @@ void assembleLine(char *line){
         // addiu $t,$s,C
         // $t = $s + C (unsigned)
         // R[rt] = R[rs] + SignExtImm
-        makeI_type(9, regToInt(three), regToInt(two), atoi(four));
+        makeI_type(9, regToInt(three), regToInt(two), immToInt(four));
         
     } else if (strcmp(one, "addu") == 0) {
         // R-type
@@ -271,42 +302,42 @@ void assembleLine(char *line){
         // R[rd] = R[rs] + R[rt]
         makeR_type(0, regToInt(three), regToInt(four), regToInt(two), 0, 33);
         
-    } else if (strcmp(one, "addi") == 0) {
+    } else if (strcmp(one, "andi") == 0) {
         // I-type
-        // addi $t,$s,C
-        // $t = $s + C (signed)
+        // andi $t,$s,C
+        // $t = $s & C
         // R[rt] = R[rs] + SignExtImm
-        makeI_type(8, regToInt(three), regToInt(two), atoi(four));
+        makeI_type(12, regToInt(three), regToInt(two), immToInt(four));
         
-    } else if (strcmp(one, "add") == 0) {
+    } else if (strcmp(one, "and") == 0) {
         // R-type
-        // add $d,$s,$t
-        // $d = $s + $t
-        // R[rd] = R[rs] + R[rt]
-        makeR_type(0, regToInt(three), regToInt(four), regToInt(two), 0, 32);
+        // and $d,$s,$t
+        // $d = $s & $t
+        // R[rd] = R[rs] & R[rt]
+        makeR_type(0, regToInt(three), regToInt(four), regToInt(two), 0, 36);
         
     } else if (strcmp(one, "beq") == 0) {
         // I-type
         // beq $s,$t,C
         // if ($s == $t) go to PC+4+4*C
         // if(R[rs]==R[rt]) PC=PC+4+BranchAddr
-        int reladdr = 0x400000 + (instr_index) - labelToIntAddr(four);
-        makeI_type(4, regToInt(two), regToInt(three), reladdr);          // relative address
+        int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
+        makeI_type(4, regToInt(two), regToInt(three), (reladdr/4));          // relative address
         
     } else if (strcmp(one, "bne") == 0) {
         // I-type
         // bne $s,$t,C
         // if ($s != $t) go to PC+4+4*C
         // if(R[rs]!=R[rt]) PC=PC+4+BranchAddr
-        int reladdr = 0x400000 + (instr_index) - labelToIntAddr(four);
-        makeI_type(5, regToInt(two), regToInt(three), reladdr);          // relative address
+        int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
+        makeI_type(5, regToInt(two), regToInt(three), reladdr/4);          // relative address
         
     } else if (strcmp(one, "jal") == 0) {
         // J-type
         // jal C
         // $31 = PC + 4; PC = PC+4[31:28] . C*4
         // R[31]=PC+8;PC=JumpAddr
-        makeJ_type(3, labelToIntAddr(two));                             // absolute address
+        makeJ_type(3, (labelToIntAddr(two)>>2));                             // absolute address
         
     } else if (strcmp(one, "jr") == 0) {
         // R-type
@@ -320,7 +351,7 @@ void assembleLine(char *line){
         // j C
         // PC = PC+4[31:28] . C*4
         // PC=JumpAddr
-        makeJ_type(2, labelToIntAddr(two));                             // absolute address
+        makeJ_type(2, (labelToIntAddr(two)>>2));                             // absolute address
     }
     else if (strcmp(one, "lui") == 0) {
         // I-type
@@ -450,29 +481,29 @@ void assembleLine(char *line){
 
 
 void makeR_type(int op, int rs, int rt, int rd, int shamt, int funct) {
-    int32_t ans;
+    int32_t ans = 0;
     ans = (op << 26);
-    ans &= (rs << 21);
-    ans &= (rt << 16);
-    ans &= (rd << 11);
-    ans &= (shamt << 6);
-    ans &= funct;
+    ans |= (rs << 21);
+    ans |= (rt << 16);
+    ans |= (rd << 11);
+    ans |= (shamt << 6);
+    ans |= funct;
     instructions[instr_index++] = ans;
 }
 
 void makeI_type(int op, int rs, int rt, int addr) {
-    int32_t ans;
+    int32_t ans = 0;
     ans = (op << 26);
-    ans &= (rs << 21);
-    ans &= (rt << 16);
-    ans &= addr;
+    ans |= (rs << 21);
+    ans |= (rt << 16);
+    ans |= (addr & 65535);
     instructions[instr_index++] = ans;
 }
 
 void makeJ_type(int op, int addr) {
-    int32_t ans;
+    int32_t ans = 0;
     ans = (op << 26);
-    ans &= addr;
+    ans |= addr;
     instructions[instr_index++] = ans;
 }
 
@@ -484,14 +515,14 @@ void makeJ_type(int op, int addr) {
 
 int regToInt(char *reg){
     //$ 빼고 int로 바꾸기.
-    char * cut = strtok(reg,"0x");
+    char * cut = strtok(reg,"$");
     return atoi(cut);
 }
 
 int labelToIntAddr(char *label) {
     int i;
     for (i=0; i<labelindex; i++) {
-        if (strcmp(label_list[i].name, label)) {
+        if (strcmp(label_list[i].name, label) == 0) {
             return label_list[i].location;
         }
     }
@@ -501,15 +532,21 @@ int labelToIntAddr(char *label) {
 int immToInt(char *immediate){
     // 2 cases - hexadecimal and decimal.
     if (strstr(immediate,"0x") != NULL) {
-        char * cut = strtok(immediate,"0x");
-        return (int)strtol(cut, NULL, 16);
+        return (int)strtol(immediate, NULL, 0);
     } else {
         return atoi(immediate);
     }
 }
 
 
-
+char *int2bin(int a, char *buffer, int buf_size) {
+    buffer += (buf_size - 1);
+    for (int i = 31; i >= 0; i--) {
+        *buffer-- = (a & 1) + '0';
+        a >>= 1;
+    }
+    return buffer;
+}
 
 
 
