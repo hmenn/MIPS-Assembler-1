@@ -14,19 +14,24 @@ using namespace std;
 
 // data structures
 struct label {
-    char name;
+    char name[100];
     int32_t location;
 };
 
 // Global variables
-label lists[100];
+label label_list[100];
 int labelindex = 0;
 
 int32_t instructions[1000];
 int instr_index = 0;
 
+int32_t datasection[1000];
+int datasectionindex = 0;
 
 // functions
+void scanLabels(char *filename, int datasize);
+int countDataSection(char *filename);
+
 void assembleLine(char *line);
 
 void makeR_type(int op, int rs, int rt, int rd, int shamt, int funct);
@@ -39,7 +44,7 @@ int immToInt(char *immediate);
 
 
 
-/* MAIN */
+/************************ MAIN ************************/
 
 
 int main(int argc, const char * argv[]) {
@@ -47,33 +52,139 @@ int main(int argc, const char * argv[]) {
     
     if (argv[1] == NULL) {
         printf("Please type in input file name.\n");
+        return 0;
     }
+    char *filename;
+    strcpy(filename, argv[1]);
+    // 1. Scan Labels and find its address locations
+    // 2. Assemble instructions with the Labels;
+    // 3. Get Number of instruction (size of .text)
+    // 4. Output the result.
+    
+    int dataSectionSize = countDataSection(filename);
+    scanLabels(filename, dataSectionSize);
     
     string line;
-    ifstream inputfile(argv[1]);
+    ifstream inputfile(filename);
     if (inputfile.is_open())
     {
-        
-        
-        
-        
-        
-        
-        
-        while ( getline(inputfile,line) )
+        while (getline(inputfile, line) )
         {
-            cout << line << '\n';
+            if(strstr(line.c_str(),".text") != NULL){
+                break;
+            }
+        }
+        
+        while (getline(inputfile, line) )
+        {
+            if (strstr(line.c_str(), ": ") != NULL) {
+                continue;
+            } else {
+                char *code;
+                strcpy(code, line.c_str());
+                assembleLine(code);
+            }
         }
         inputfile.close();
     }
     else cout << "Unable to open file";
     
     
+    /* Writing section */
+    dataSectionSize *= 4;
     
+    ofstream outputfile("output.o", ios::out | ios::binary);
+    outputfile.put(instr_index*4); // text section size
+    outputfile.put(dataSectionSize); // data section size
     
-    //std::cout << "Hello, World!\n";
+    int i;
+    for (i=0; i<instr_index; i++) {
+        outputfile.put(instructions[i]);
+    }
+    for (i=0; i<datasectionindex; i++) {
+        outputfile.put(datasection[i]);
+    }
+    outputfile.close();
+   
     return 0;
 }
+
+
+void scanLabels(char *filename, int datasize) {
+    int datasizecnt = datasize;
+    int instruction_count = 0;
+    
+    string line;
+    ifstream inputfile(filename);
+    if (inputfile.is_open())
+    {
+        // finds the .data section and count the number of .word before .text section appears
+        while (getline(inputfile, line))
+        {
+            if (strstr(line.c_str(),".data") != NULL){
+                break;
+            }
+        }
+        while (getline(inputfile, line)) {
+            // Labels inside .data section.
+            if (strstr(line.c_str(),".word") != NULL){
+                label newLabel;
+                char temp[100];
+                strcpy(temp, line.c_str());
+                strcpy(newLabel.name , strtok(temp,":"));
+                newLabel.location = 0x10000000+(datasizecnt-1)*4;
+                datasizecnt--;
+                label_list[labelindex++]=newLabel;
+            }
+            if (strstr(line.c_str(),".text") != NULL){
+                break;
+            }
+        }
+        // Labels inside .text section (function labels)
+        while (getline(inputfile, line)) {
+            if (strstr(line.c_str(), ": ") != NULL) {
+                label newLabel;
+                char temp[100];
+                strcpy(temp, line.c_str());
+                strcpy(newLabel.name , strtok(temp,":"));
+                newLabel.location = 0x400000 + (instruction_count-1)*4;
+                label_list[labelindex++]=newLabel;
+            } else if (strstr(line.c_str(), "la") != NULL) {
+                char temp[100];
+                strcpy(temp, line.c_str());
+                
+                char * one;
+                char * two;
+                char * three;
+                char key[] = " ,\t";
+                one = strtok(temp, key);
+                if(one != NULL)
+                    two = strtok(NULL,key);
+                if(two != NULL)
+                    three = strtok(NULL,key);
+                
+                int location = labelToIntAddr(three);
+                
+                
+                if ((location & 65535) == 0) {          // if lower 16bit address is 0x0000
+                    instruction_count++;                // lui instruction
+                } else {
+                    instruction_count += 2;             // lui instruction + ori instruction
+                }
+            } else {
+                instruction_count++;
+            }
+        }
+        
+        
+        inputfile.close();
+    }
+    else cout << "Unable to open file";
+}
+
+
+
+
 
 
 
@@ -98,6 +209,23 @@ int countDataSection(char *filename) {
             }
             if(strstr(line.c_str(),".word") != NULL){
                 count++;
+                char * one;
+                char * two;
+                char * three;
+                char temp[100];
+                strcpy(temp, line.c_str());
+                
+                if (strstr(temp,":") != NULL) {
+                    one = strtok(temp,":");
+                    two = strtok(NULL, " \t");
+                    three = strtok(NULL, " \t");
+                    datasection[datasectionindex++] = immToInt(three);
+                } else {
+                    one = strtok(NULL, " \t");
+                    two = strtok(NULL, " \t");
+                    datasection[datasectionindex++] = immToInt(two);
+                }
+           
             }
         }
         inputfile.close();
@@ -107,15 +235,17 @@ int countDataSection(char *filename) {
     return count;
 }
 
+
+
+
+/* Assembling Function */
 void assembleLine(char *line){
-    
-    
-    char key[] = " ,";
-    
+
+    char key[] = " ,\t";
     char * one;
     char * two;
     char * three;
-    char * four;
+    char * four = NULL;
     
     one = strtok(line,key);
     
@@ -160,21 +290,23 @@ void assembleLine(char *line){
         // beq $s,$t,C
         // if ($s == $t) go to PC+4+4*C
         // if(R[rs]==R[rt]) PC=PC+4+BranchAddr
-        makeI_type(4, regToInt(two), regToInt(three), atoi(four));
+        int reladdr = 0x400000 + (instr_index) - labelToIntAddr(four);
+        makeI_type(4, regToInt(two), regToInt(three), reladdr);          // relative address
         
     } else if (strcmp(one, "bne") == 0) {
         // I-type
         // bne $s,$t,C
         // if ($s != $t) go to PC+4+4*C
         // if(R[rs]!=R[rt]) PC=PC+4+BranchAddr
-        makeI_type(5, regToInt(two), regToInt(three), atoi(four));
+        int reladdr = 0x400000 + (instr_index) - labelToIntAddr(four);
+        makeI_type(5, regToInt(two), regToInt(three), reladdr);          // relative address
         
     } else if (strcmp(one, "jal") == 0) {
         // J-type
         // jal C
         // $31 = PC + 4; PC = PC+4[31:28] . C*4
         // R[31]=PC+8;PC=JumpAddr
-        makeJ_type(3, atoi(two));
+        makeJ_type(3, labelToIntAddr(two));                             // absolute address
         
     } else if (strcmp(one, "jr") == 0) {
         // R-type
@@ -183,7 +315,14 @@ void assembleLine(char *line){
         // PC=R[rs]
         makeR_type(0, regToInt(two), 0, 0, 0, 8);
         
-    } else if (strcmp(one, "lui") == 0) {
+    } else if (strcmp(one, "j") == 0) {
+        // J-type
+        // j C
+        // PC = PC+4[31:28] . C*4
+        // PC=JumpAddr
+        makeJ_type(2, labelToIntAddr(two));                             // absolute address
+    }
+    else if (strcmp(one, "lui") == 0) {
         // I-type
         // lui $t,C
         // $t = C << 16
@@ -209,7 +348,7 @@ void assembleLine(char *line){
          lui $2, 0x1000
          ori $2, $2, 0x0004
         */
-        int location = labelToIntAddr(three);
+        int location = labelToIntAddr(three);                                   // absolute label address
         if ((location & 65535) == 0) { // if lower 16bit address is 0x0000
             makeI_type(15, 0, regToInt(two), (location>>16));                   // lui instruction
         } else {
@@ -280,7 +419,6 @@ void assembleLine(char *line){
         // R[rd] = R[rs] - R[rt]
         makeR_type(0, regToInt(three), regToInt(four), regToInt(two), 0, 35);
     }
-    return
 }
 
 
@@ -342,25 +480,35 @@ void makeJ_type(int op, int addr) {
 
 
 
-//
+// Conversion functions
 
 int regToInt(char *reg){
     //$ 빼고 int로 바꾸기.
+    char * cut = strtok(reg,"0x");
+    return atoi(cut);
 }
 
 int labelToIntAddr(char *label) {
-    
+    int i;
+    for (i=0; i<labelindex; i++) {
+        if (strcmp(label_list[i].name, label)) {
+            return label_list[i].location;
+        }
+    }
+    return -1;
 }
 
 int immToInt(char *immediate){
-    // 2 cases.
-    // hex, decimal
-    
+    // 2 cases - hexadecimal and decimal.
+    if (strstr(immediate,"0x") != NULL) {
+        char * cut = strtok(immediate,"0x");
+        return (int)strtol(cut, NULL, 16);
+    } else {
+        return atoi(immediate);
+    }
 }
 
 
-// 1. Find Jump Locations
-// 2. Make instructions (funciton)
 
 
 
