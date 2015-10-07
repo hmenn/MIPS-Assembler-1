@@ -48,30 +48,20 @@ char *int2bin(int a, char *buffer, int buf_size);
 
 
 int main(int argc, const char * argv[]) {
-    char * dir = getcwd(NULL, 0); // Platform-dependent, see reference link below
-    printf("Current dir: %s\n", dir);
     
     
-    
-    
-    /*
     if (argv[1] == NULL) {
         printf("Please type in input file name.\n");
         return 0;
     }
-     */
+     
     char filename[20];
-    //strcpy(filename, argv[1]);
+    strcpy(filename, argv[1]);
     
     //strcpy(filename, "example_mod.s");
     //strcpy(filename, "example2_mod.s");
     //strcpy(filename, "example3.s");
-    strcpy(filename, "example4.s");
-    
-    // 1. Scan Labels and find its address locations
-    // 2. Assemble instructions with the Labels;
-    // 3. Get Number of instruction (size of .text)
-    // 4. Output the result.
+    //strcpy(filename, "example4.s");
     
     int dataSectionSize = countDataSection(filename);
     scanLabels(filename);
@@ -214,12 +204,6 @@ void scanLabels(char *filename) {
 }
 
 
-
-
-
-
-
-
 int countDataSection(char *filename) {
     int count = 0;
     
@@ -262,7 +246,6 @@ int countDataSection(char *filename) {
         inputfile.close();
     }
     else cout << "Unable to open file\n";
-    
     return count;
 }
 
@@ -330,7 +313,7 @@ void assembleLine(char *line){
         // if ($s != $t) go to PC+4+4*C
         // if(R[rs]!=R[rt]) PC=PC+4+BranchAddr
         int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
-        makeI_type(5, regToInt(two), regToInt(three), reladdr/4);          // relative address
+        makeI_type(5, regToInt(two), regToInt(three), (reladdr/4));          // relative address
         
     } else if (strcmp(one, "jal") == 0) {
         // J-type
@@ -538,7 +521,6 @@ int immToInt(char *immediate){
     }
 }
 
-
 char *int2bin(int a, char *buffer, int buf_size) {
     buffer += (buf_size - 1);
     for (int i = 31; i >= 0; i--) {
@@ -547,27 +529,4 @@ char *int2bin(int a, char *buffer, int buf_size) {
     }
     return buffer;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
