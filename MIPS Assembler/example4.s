@@ -1,23 +1,23 @@
 	.data
 	.text
 main:
-	addu	$2, $4, $5
-	addu	$2, $6, $7
-	subu	$9, $3, $2
+	addu	$s2, $t4, $t5
+	addu	$s2, $t6, $t7
+	subu	$s0, $3, $s2
 lab1:
-	and	$11, $11, $0
-	addiu	$10, $10, 0x1
-	or	$6, $6, $0
+	and	$s4, $s4, $zero
+	addiu	$s1, $s1, 0x1
+	or	$t6, $t6, $zero
 	jal	lab3
 lab3:
-	sll	$7, $6, 2
-	srl	$5, $4, 2
-	sltiu	$9, $10, 100
-	beq	$9, $0, lab4
-	jr	$31
+	sll	$t7, $t6, 2
+	srl	$t5, $t4, 2
+	sltiu	$s0, $s1, 100
+	beq	$s0, $zero, lab4
+	jr	$ra
 lab4:
-	sltu	$4, $2, $3
-	bne	$4, $0, lab5
+	sltu	$t4, $s2, $3
+	bne	$t4, $zero, lab5
 	j	lab1
 lab5:
-	ori	$16, $16, 0xf0f0
+	ori	$s6, $s6, 0xf0f0
