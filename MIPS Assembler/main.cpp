@@ -51,7 +51,7 @@ char *int2bin(int a, char *buffer, int buf_size);
 char *intTobin(int input);
 /************************ MAIN ************************/
 int main() {
-    char filename[20] ="example5.s";
+    char filename[20] ="a.asm";
     int dataSectionSize = countDataSection(filename);
     scanLabels(filename);
 
@@ -233,7 +233,7 @@ int countDataSection(char *filename) {
 
 /* Assembling Function */
 void assemble(char *instruction){
-    char key[] = " ,\t\r\n()";
+    char key[] = " ,\t\r\n";
     char * one = NULL; // opcode
     char * two = NULL; // rd or rt
     char * three = NULL; // rs or rt
@@ -255,11 +255,11 @@ void assemble(char *instruction){
 
     //four[strlen(four)-1]='\0';
 
-    printf("one: %s, Size: %d\n", one,(int)strlen(one));
-    printf("two: %s, Size: %d\n", two,(int)strlen(two));
-    printf("three: %s, Size: %d\n", three,(int)strlen(three));
-    printf("four: %s, Size: %d\n", four,(int)strlen(four));
-    printf("continuing...\n");
+    // printf("one: %s, Size: %d\n", one,(int)strlen(one));
+    // printf("two: %s, Size: %d\n", two,(int)strlen(two));
+    // printf("three: %s, Size: %d\n", three,(int)strlen(three));
+    // printf("four: %s, Size: %d\n", four,(int)strlen(four));
+    // printf("continuing...\n");
 
     // R-Type : OP-RS-RT-RD-SHMT-FUNC
     // I-Type : OP-RS-RT-IMM
@@ -272,20 +272,29 @@ void assemble(char *instruction){
       // ADDI rt, rs, immediate [I-type]
       makeI_type(8, regToInt(three), regToInt(two), immToInt(four));
   	} else if (strcmp(one, "lbu") == 0) {
-      // LBU rt, offset(base) [I-type]
-      // LBU	base	rt	offset <- machine
-      // TODO: offset icin check olacak mı?
-      makeI_type(36, regToInt(four), regToInt(two), immToInt(three));
+      // LBU rs, offset(base) [I-type]
+      // LBU	base	rs	offset <- machine
+      char * offset = strtok(three,"()");
+      char * rs = strtok(NULL,"()");
+      printf("offset: %s\n", offset);
+      printf("rs: %s\n", rs);
+      makeI_type(36, regToInt(rs), regToInt(two), immToInt(offset));
   	} else if (strcmp(one, "lhu") == 0) {
-      // LHU rt, offset(base) [I-type]
-      // LHU	base	rt	offset <- machine
-      // TODO: offset icin check olacak mı?
-      makeI_type(37,regToInt(four),regToInt(two),immToInt(three));
+      // LHU rs, offset(base) [I-type]
+      // LHU	base	rs	offset <- machine
+      char * offset = strtok(three,"()");
+      char * rs = strtok(NULL,"()");
+      printf("offset: %s\n", offset);
+      printf("rs: %s\n", rs);
+      makeI_type(37,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "ll") == 0) {
-      // LL rt, offset(base) [I-type]
-      // LL	base	rt	offset <- machine
-      // TODO: offset icin check olacak mı?
-      makeI_type(48,regToInt(four),regToInt(two),immToInt(three));
+      // LL rs, offset(base) [I-type]
+      // LL	base	rs	offset <- machine
+      char * offset = strtok(three,"()");
+      char * rs = strtok(NULL,"()");
+      printf("offset: %s\n", offset);
+      printf("rs: %s\n", rs);
+      makeI_type(48,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "slt") == 0) {
       // SLT rd, rs, rt [R-type]
       // OP	rs	rt	rd	0	SLT <- machine
@@ -298,22 +307,31 @@ void assemble(char *instruction){
       makeI_type(10,regToInt(three),regToInt(two),immToInt(four));
   	} else if (strcmp(one, "sb") == 0) {
       // Store Byte
-      // SB rt, offset(base) [I-type]
-      // SB	base	rt	offset <- machine
-      // TODO: offset icin check olacak mı?
-      makeI_type(40,regToInt(four),regToInt(two),immToInt(three));
+      // SB rs, offset(base) [I-type]
+      // SB	base	rs	offset <- machine
+      char * offset = strtok(three,"()");
+      char * rs = strtok(NULL,"()");
+      printf("offset: %s\n", offset);
+      printf("rs: %s\n", rs);
+      makeI_type(40,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "sc") == 0) {
       // Store Conditional Word
-      // SC rt, offset(base) [I-type]
-      // SC	base	rt	offset <- machine
-      // TODO: offset icin check olacak mı?
-      makeI_type(56,regToInt(four),regToInt(two),immToInt(three));
+      // SC rs, offset(base) [I-type]
+      // SC	base	rs	offset <- machine
+      char * offset = strtok(three,"()");
+      char * rs = strtok(NULL,"()");
+      printf("offset: %s\n", offset);
+      printf("rs: %s\n", rs);
+      makeI_type(56,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "sh") == 0) {
       // Store Halfword
-      // SH rt, offset(base) [I-type]
-      // SH	base	rt	offset <- machine
-      // TODO: offset icin check olacak mı?
-      makeI_type(41,regToInt(four),regToInt(two),immToInt(three));
+      // SH rs, offset(base) [I-type]
+      // SH	base	rs	offset <- machine
+      char * offset = strtok(three,"()");
+      char * rs = strtok(NULL,"()");
+      printf("offset: %s\n", offset);
+      printf("rs: %s\n", rs);
+      makeI_type(41,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "sub") == 0) {
       // Subtract Word
       // SUB rd, rs, rt [R-type]
@@ -321,10 +339,14 @@ void assemble(char *instruction){
       makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,34);
   	} else if (strcmp(one, "li") == 0) { // pseudo instructions
       // Load Immidiate
-      // LI rt, imm [I-type]
-      // ADDI rt, zero, immediate [I-type]
-      char zero[5] = "zero";
-      makeI_type(8,regToInt(zero),regToInt(two),immToInt(three));
+      // LI rs, imm [I-type]
+      //
+      // lui $rs, upper( big )
+      // ori $rs, $rs, lower( big )
+      int imm = immToInt(three);
+      makeI_type(15, 0, regToInt(two), (imm>>16));                   // lui instruction
+      makeI_type(13, regToInt(two), regToInt(two), (imm & 65535));   // ori instruction
+
   	} else if (strcmp(one, "move") == 0) {
       // move with R-Type add
       // move $d, $s
@@ -569,7 +591,7 @@ void makeJ_type(int op, int addr) {
 
 // Conversion functions
 int regToInt(char *reg){
-	  printf("------\nregToInt: %s\n", reg);
+	  //printf("------\nregToInt: %s\n", reg);
     char * cut = strtok(reg,"$");
     int rVal, temp;
 
