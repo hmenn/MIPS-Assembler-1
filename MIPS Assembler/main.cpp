@@ -233,7 +233,7 @@ int countDataSection(char *filename) {
 
 /* Assembling Function */
 void assemble(char *instruction){
-    char key[] = " ,\t\r\n";
+    char key[] = " ,\t\r\n()";
     char * one = NULL; // opcode
     char * two = NULL; // rd or rt
     char * three = NULL; // rs or rt
@@ -255,82 +255,106 @@ void assemble(char *instruction){
 
     //four[strlen(four)-1]='\0';
 
-    // printf("one: %s, Size: %d\n", one,(int)strlen(one));
-    // printf("two: %s, Size: %d\n", two,(int)strlen(two));
-    // printf("three: %s, Size: %d\n", three,(int)strlen(three));
-    // //printf("four: %s, Size: %d\n", four,(int)strlen(four));
-    // printf("continuing...\n");
+    printf("one: %s, Size: %d\n", one,(int)strlen(one));
+    printf("two: %s, Size: %d\n", two,(int)strlen(two));
+    printf("three: %s, Size: %d\n", three,(int)strlen(three));
+    printf("four: %s, Size: %d\n", four,(int)strlen(four));
+    printf("continuing...\n");
 
-    // START TO IMPLEMENT FROM HERE!!!
+    // R-Type : OP-RS-RT-RD-SHMT-FUNC
+    // I-Type : OP-RS-RT-IMM
+    // J-Type : OP-ADDRESS
+
     if (strcmp(one, "add") == 0) {
-      // R-type
-      // add $d,$s,$t
-      // R[rd] = R[rs] + R[rt]0
+      // ADD rd, rs, rt [R-type]
       makeR_type(0, regToInt(three), regToInt(four), regToInt(two), 0, 32);
-	} else if (strcmp(one, "addi") == 0) {
-    // I-type
-    // addi $t,$s i
-    // R[rt] = R[rs] + i
-    makeI_type(8, regToInt(three), regToInt(two), immToInt(four));
-	} else if (strcmp(one, "lbu") == 0) {
-    //TODO
-    makeI_type(36, regToInt(three), regToInt(two), immToInt(four));
-	} else if (strcmp(one, "lhu") == 0) {
-    //TODO
-	} else if (strcmp(one, "ll") == 0) {
-    //TODO
-	} else if (strcmp(one, "slt") == 0) {
-    // slt rd, rs, rt [R-type]
-    // rd = (rs<rt) ? 1 : 0
-    makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,42);
-	} else if (strcmp(one, "slti") == 0) {
-    // slti rt, rs, imm [I-type]
-    // rs = (rt<imm) ? 1 : 0
-    makeI_type(10,regToInt(three),regToInt(two),immToInt(four));
-	} else if (strcmp(one, "sb") == 0) {
-    //TODO
-	} else if (strcmp(one, "sc") == 0) {
-    //TODO
-	} else if (strcmp(one, "sh") == 0) {
-    //TODO
-	} else if (strcmp(one, "sub") == 0) {
-    //sub rd, rs, rt [R-type]
-    makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,34);
-	} else if (strcmp(one, "li") == 0) { // pseudo instructions
-    // li -> addi
-    // li rt = imm
-    // addi rt zero imm
-    char zero[5] = "zero";
-    makeI_type(8,regToInt(zero),regToInt(two),immToInt(three));
-	} else if (strcmp(one, "move") == 0) {
-    // move with R-Type add
-    // move $d, $s
-    // R[rd] = R[rs]
-    char zero[5] = "zero";
-    makeR_type(0,regToInt(three),regToInt(zero),regToInt(two),0,32);
-	} else if (strcmp(one, "blt") == 0) {
-    //blt $8, $9, label
-    //slt $1, $8, $9
-    //bne $1, $0, label
-    char temp[4]="$at";
-    char zero[5]="zero";
-    makeR_type(0,regToInt(two),regToInt(three),regToInt(temp),0,42);
+  	} else if (strcmp(one, "addi") == 0) {
+      // ADDI rt, rs, immediate [I-type]
+      makeI_type(8, regToInt(three), regToInt(two), immToInt(four));
+  	} else if (strcmp(one, "lbu") == 0) {
+      // LBU rt, offset(base) [I-type]
+      // LBU	base	rt	offset <- machine
+      // TODO: offset icin check olacak mı?
+      makeI_type(36, regToInt(four), regToInt(two), immToInt(three));
+  	} else if (strcmp(one, "lhu") == 0) {
+      // LHU rt, offset(base) [I-type]
+      // LHU	base	rt	offset <- machine
+      // TODO: offset icin check olacak mı?
+      makeI_type(37,regToInt(four),regToInt(two),immToInt(three));
+  	} else if (strcmp(one, "ll") == 0) {
+      // LL rt, offset(base) [I-type]
+      // LL	base	rt	offset <- machine
+      // TODO: offset icin check olacak mı?
+      makeI_type(48,regToInt(four),regToInt(two),immToInt(three));
+  	} else if (strcmp(one, "slt") == 0) {
+      // SLT rd, rs, rt [R-type]
+      // OP	rs	rt	rd	0	SLT <- machine
+      // rd = (rs<rt) ? 1 : 0
+      makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,42);
+  	} else if (strcmp(one, "slti") == 0) {
+      // SLTI rt, rs, immediate [I-type]
+      // SLTI	rs	rt	immediate <- machine
+      // rs = (rt<imm) ? 1 : 0
+      makeI_type(10,regToInt(three),regToInt(two),immToInt(four));
+  	} else if (strcmp(one, "sb") == 0) {
+      // Store Byte
+      // SB rt, offset(base) [I-type]
+      // SB	base	rt	offset <- machine
+      // TODO: offset icin check olacak mı?
+      makeI_type(40,regToInt(four),regToInt(two),immToInt(three));
+  	} else if (strcmp(one, "sc") == 0) {
+      // Store Conditional Word
+      // SC rt, offset(base) [I-type]
+      // SC	base	rt	offset <- machine
+      // TODO: offset icin check olacak mı?
+      makeI_type(56,regToInt(four),regToInt(two),immToInt(three));
+  	} else if (strcmp(one, "sh") == 0) {
+      // Store Halfword
+      // SH rt, offset(base) [I-type]
+      // SH	base	rt	offset <- machine
+      // TODO: offset icin check olacak mı?
+      makeI_type(41,regToInt(four),regToInt(two),immToInt(three));
+  	} else if (strcmp(one, "sub") == 0) {
+      // Subtract Word
+      // SUB rd, rs, rt [R-type]
+      // OP	rs	rt	rd	0	SUB <- machine
+      makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,34);
+  	} else if (strcmp(one, "li") == 0) { // pseudo instructions
+      // Load Immidiate
+      // LI rt, imm [I-type]
+      // ADDI rt, zero, immediate [I-type]
+      char zero[5] = "zero";
+      makeI_type(8,regToInt(zero),regToInt(two),immToInt(three));
+  	} else if (strcmp(one, "move") == 0) {
+      // move with R-Type add
+      // move $d, $s
+      // add $d $s $zero
+      // R[rd] = R[rs] + R[0]
+      char zero[5] = "zero";
+      makeR_type(0,regToInt(three),regToInt(zero),regToInt(two),0,32);
+  	} else if (strcmp(one, "blt") == 0) {
+      //blt $s, $t, label
+      //slt $at, $rs, $rt
+      //bne $at, $0, label
+      char temp[4]="$at";
+      char zero[5]="zero";
+      makeR_type(0,regToInt(two),regToInt(three),regToInt(temp),0,42);
 
-    int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
-    makeI_type(5, regToInt(zero), regToInt(temp), (reladdr/4));
+      int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
+      makeI_type(5, regToInt(zero), regToInt(temp), (reladdr/4));
 
-	} else if (strcmp(one, "ble") == 0) {
-    //ble $rt, $rs, LABEL
-    //slt $t0, $rs, $rt
-    //beq $t0, $zero, LABEL
-    char temp[4]="$at";
-    char zero[5]="zero";
-    makeR_type(0,regToInt(three),regToInt(two),regToInt(temp),0,42);
+  	} else if (strcmp(one, "ble") == 0) {
+      //ble $rt, $rs, LABEL
+      //slt $t0, $rs, $rt
+      //beq $t0, $zero, LABEL
+      char temp[4]="$at";
+      char zero[5]="zero";
+      makeR_type(0,regToInt(three),regToInt(two),regToInt(temp),0,42);
 
-    int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
-    makeI_type(4, regToInt(zero), regToInt(temp), (reladdr/4));
+      int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
+      makeI_type(4, regToInt(zero), regToInt(temp), (reladdr/4));
 
-	} else if (strcmp(one, "addiu") == 0) {
+  	} else if (strcmp(one, "addiu") == 0) {
         // I-type
         // addiu $t,$s,C
         // $t = $s + C (unsigned)
