@@ -6,7 +6,7 @@
 */
 //  MIPS Assembler
 //  Created by Young Seok Kim
-//  Copyright � 2015 TonyKim. All rights reserved.
+//  Copyright © 2015 TonyKim. All rights reserved.
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -80,6 +80,7 @@ int main() {
                 assemble(assemblyCodeline);
             }
         }
+
         inputfile.close();
     }
     else {
@@ -156,8 +157,13 @@ void scanLabels(char *filename) {
                 char * three = NULL;
                 char key[] = " ,\t";
                 one = strtok(temp, key);
-                if(one != NULL)
+                if(one != NULL){
                     two = strtok(NULL,key);
+                }
+                else{
+                  printf("scanLabels::empty line\n");
+                	return;
+                }
                 if(two != NULL)
                     three = strtok(NULL,key);
 
@@ -227,7 +233,7 @@ int countDataSection(char *filename) {
 
 /* Assembling Function */
 void assemble(char *instruction){
-    char key[] = " ,\t";
+    char key[] = " ,\t\r\n";
     char * one = NULL; // opcode
     char * two = NULL; // rd or rt
     char * three = NULL; // rs or rt
@@ -235,42 +241,52 @@ void assemble(char *instruction){
 
     one = strtok(instruction,key);
 
-    if(one != NULL)
+    if (one == NULL) {
+      printf("assemble::empty line\n");
+      return;
+    } else if(one != NULL) {
         two = strtok(NULL,key);
+    }
+
     if(two != NULL)
         three = strtok(NULL,key);
     if(three != NULL)
         four = strtok(NULL,key);
 
-    printf("one: %s\n", one);
-    printf("two: %s\n", two);
-    printf("three: %s\n", three);
-    printf("four: %s\n", four);
-    printf("continuing...\n");
+    //four[strlen(four)-1]='\0';
+
+    // printf("one: %s, Size: %d\n", one,(int)strlen(one));
+    // printf("two: %s, Size: %d\n", two,(int)strlen(two));
+    // printf("three: %s, Size: %d\n", three,(int)strlen(three));
+    // //printf("four: %s, Size: %d\n", four,(int)strlen(four));
+    // printf("continuing...\n");
 
     // START TO IMPLEMENT FROM HERE!!!
     if (strcmp(one, "add") == 0) {
       // R-type
       // add $d,$s,$t
-      // $d = $s + $t
-      // R[rd] = R[rs] + R[rt]
+      // R[rd] = R[rs] + R[rt]0
       makeR_type(0, regToInt(three), regToInt(four), regToInt(two), 0, 32);
 	} else if (strcmp(one, "addi") == 0) {
     // I-type
     // addi $t,$s i
-    // $t = $s + i
     // R[rt] = R[rs] + i
-    makeI_type(8, regToInt(two), regToInt(three), immToInt(four));
+    makeI_type(8, regToInt(three), regToInt(two), immToInt(four));
 	} else if (strcmp(one, "lbu") == 0) {
     //TODO
+    makeI_type(36, regToInt(three), regToInt(two), immToInt(four));
 	} else if (strcmp(one, "lhu") == 0) {
     //TODO
 	} else if (strcmp(one, "ll") == 0) {
     //TODO
 	} else if (strcmp(one, "slt") == 0) {
-    //TODO
+    // slt rd, rs, rt [R-type]
+    // rd = (rs<rt) ? 1 : 0
+    makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,42);
 	} else if (strcmp(one, "slti") == 0) {
-    //TODO
+    // slti rt, rs, imm [I-type]
+    // rs = (rt<imm) ? 1 : 0
+    makeI_type(10,regToInt(three),regToInt(two),immToInt(four));
 	} else if (strcmp(one, "sb") == 0) {
     //TODO
 	} else if (strcmp(one, "sc") == 0) {
@@ -278,9 +294,14 @@ void assemble(char *instruction){
 	} else if (strcmp(one, "sh") == 0) {
     //TODO
 	} else if (strcmp(one, "sub") == 0) {
-    //TODO
+    //sub rd, rs, rt [R-type]
+    makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,34);
 	} else if (strcmp(one, "li") == 0) { // pseudo instructions
-    //
+    // li -> addi
+    // li rt = imm
+    // addi rt zero imm
+    char zero[5] = "zero";
+    makeI_type(8,regToInt(zero),regToInt(two),immToInt(three));
 	} else if (strcmp(one, "move") == 0) {
     // move with R-Type add
     // move $d, $s
@@ -288,9 +309,27 @@ void assemble(char *instruction){
     char zero[5] = "zero";
     makeR_type(0,regToInt(three),regToInt(zero),regToInt(two),0,32);
 	} else if (strcmp(one, "blt") == 0) {
-    //TODO
+    //blt $8, $9, label
+    //slt $1, $8, $9
+    //bne $1, $0, label
+    char temp[4]="$at";
+    char zero[5]="zero";
+    makeR_type(0,regToInt(two),regToInt(three),regToInt(temp),0,42);
+
+    int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
+    makeI_type(5, regToInt(zero), regToInt(temp), (reladdr/4));
+
 	} else if (strcmp(one, "ble") == 0) {
-    //TODO
+    //ble $rt, $rs, LABEL
+    //slt $t0, $rs, $rt
+    //beq $t0, $zero, LABEL
+    char temp[4]="$at";
+    char zero[5]="zero";
+    makeR_type(0,regToInt(three),regToInt(two),regToInt(temp),0,42);
+
+    int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
+    makeI_type(4, regToInt(zero), regToInt(temp), (reladdr/4));
+
 	} else if (strcmp(one, "addiu") == 0) {
         // I-type
         // addiu $t,$s,C
@@ -506,15 +545,21 @@ void makeJ_type(int op, int addr) {
 
 // Conversion functions
 int regToInt(char *reg){
-	//printf("reg: %s,", reg);
+	  printf("------\nregToInt: %s\n", reg);
     char * cut = strtok(reg,"$");
     int rVal, temp;
+
+    // cout<<"Size:"<<(int)strlen(cut)<<endl;
+    int len= strlen(cut);
+    // printf("Cut:%s\n",cut);
 
     temp = cut[1]-48;
     if(strcmp("zero", cut)==0){
     	rVal = 0;
     } else if(strcmp("gp", cut)==0){
     	rVal = 28;
+    } else if(strcmp("at", cut)==0){
+    	rVal = 1;
     } else if(strcmp("sp", cut)==0){
     	rVal = 29;
     } else if(strcmp("fp", cut)==0){
@@ -534,7 +579,7 @@ int regToInt(char *reg){
     } else{
     	rVal = -1;
     }
-   // printf("rVal: %d\n", rVal);
+    // printf("rVal: %d\n", rVal);
     return rVal;
 }
 

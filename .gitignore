@@ -28,3 +28,7 @@ xcuserdata
 *.moved-aside
 *.xcuserstate
 
+## Exec
+*.exec
+*.o
+
