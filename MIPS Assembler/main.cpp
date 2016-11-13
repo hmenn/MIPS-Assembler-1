@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <bitset>
 #include <vector>
-#include <cstdint>
+#include <stdint.h>
 using namespace std;
 
 // data structures
@@ -161,7 +161,7 @@ void scanLabels(char *filename) {
                     two = strtok(NULL,key);
                 }
                 else{
-                  printf("scanLabels::empty line\n");
+                  //printf("scanLabels::empty line\n");
                 	return;
                 }
                 if(two != NULL)
@@ -242,7 +242,7 @@ void assemble(char *instruction){
     one = strtok(instruction,key);
 
     if (one == NULL) {
-      printf("assemble::empty line\n");
+      //printf("assemble::empty line\n");
       return;
     } else if(one != NULL) {
         two = strtok(NULL,key);
@@ -276,28 +276,28 @@ void assemble(char *instruction){
       // LBU	base	rs	offset <- machine
       char * offset = strtok(three,"()");
       char * rs = strtok(NULL,"()");
-      printf("offset: %s\n", offset);
-      printf("rs: %s\n", rs);
+      //printf("offset: %s\n", offset);
+      //printf("rs: %s\n", rs);
       makeI_type(36, regToInt(rs), regToInt(two), immToInt(offset));
   	} else if (strcmp(one, "lhu") == 0) {
       // LHU rs, offset(base) [I-type]
       // LHU	base	rs	offset <- machine
       char * offset = strtok(three,"()");
       char * rs = strtok(NULL,"()");
-      printf("offset: %s\n", offset);
-      printf("rs: %s\n", rs);
+      //printf("offset: %s\n", offset);
+      //printf("rs: %s\n", rs);
       makeI_type(37,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "ll") == 0) {
       // LL rs, offset(base) [I-type]
       // LL	base	rs	offset <- machine
       char * offset = strtok(three,"()");
       char * rs = strtok(NULL,"()");
-      printf("offset: %s\n", offset);
-      printf("rs: %s\n", rs);
+      //printf("offset: %s\n", offset);
+      //printf("rs: %s\n", rs);
       makeI_type(48,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "slt") == 0) {
       // SLT rd, rs, rt [R-type]
-      // OP	rs	rt	rd	0	SLT <- machine
+      // SLT rs	rt	rd	0	SLT <- machine
       // rd = (rs<rt) ? 1 : 0
       makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,42);
   	} else if (strcmp(one, "slti") == 0) {
@@ -311,8 +311,8 @@ void assemble(char *instruction){
       // SB	base	rs	offset <- machine
       char * offset = strtok(three,"()");
       char * rs = strtok(NULL,"()");
-      printf("offset: %s\n", offset);
-      printf("rs: %s\n", rs);
+      //printf("offset: %s\n", offset);
+      //printf("rs: %s\n", rs);
       makeI_type(40,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "sc") == 0) {
       // Store Conditional Word
@@ -320,8 +320,8 @@ void assemble(char *instruction){
       // SC	base	rs	offset <- machine
       char * offset = strtok(three,"()");
       char * rs = strtok(NULL,"()");
-      printf("offset: %s\n", offset);
-      printf("rs: %s\n", rs);
+      //printf("offset: %s\n", offset);
+      //printf("rs: %s\n", rs);
       makeI_type(56,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "sh") == 0) {
       // Store Halfword
@@ -329,13 +329,13 @@ void assemble(char *instruction){
       // SH	base	rs	offset <- machine
       char * offset = strtok(three,"()");
       char * rs = strtok(NULL,"()");
-      printf("offset: %s\n", offset);
-      printf("rs: %s\n", rs);
+      //printf("offset: %s\n", offset);
+      //printf("rs: %s\n", rs);
       makeI_type(41,regToInt(rs),regToInt(two),immToInt(offset));
   	} else if (strcmp(one, "sub") == 0) {
       // Subtract Word
       // SUB rd, rs, rt [R-type]
-      // OP	rs	rt	rd	0	SUB <- machine
+      // SUB rs	rt	rd	0	SUB <- machine
       makeR_type(0,regToInt(three),regToInt(four),regToInt(two),0,34);
   	} else if (strcmp(one, "li") == 0) { // pseudo instructions
       // Load Immidiate
@@ -359,19 +359,19 @@ void assemble(char *instruction){
       //slt $at, $rs, $rt
       //bne $at, $0, label
       char temp[4]="$at";
-      char zero[5]="zero";
+      char zero[6]="$zero";
       makeR_type(0,regToInt(two),regToInt(three),regToInt(temp),0,42);
 
       int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
       makeI_type(5, regToInt(zero), regToInt(temp), (reladdr/4));
 
   	} else if (strcmp(one, "ble") == 0) {
-      //ble $rt, $rs, LABEL
-      //slt $t0, $rs, $rt
-      //beq $t0, $zero, LABEL
+      //ble $rs, $rt, LABEL
+      //slt $at, $rs, $rt
+      //beq $at, $zero, LABEL
       char temp[4]="$at";
-      char zero[5]="zero";
-      makeR_type(0,regToInt(three),regToInt(two),regToInt(temp),0,42);
+      char zero[6]="$zero";
+      makeR_type(0,regToInt(two),regToInt(three),regToInt(temp),0,42);
 
       int reladdr = labelToIntAddr(four) - (0x400000 + ((instr_index)*4)+4);
       makeI_type(4, regToInt(zero), regToInt(temp), (reladdr/4));
@@ -597,7 +597,7 @@ int regToInt(char *reg){
 
     // cout<<"Size:"<<(int)strlen(cut)<<endl;
     int len= strlen(cut);
-    // printf("Cut:%s\n",cut);
+    //printf("Cut:%s\n",cut);
 
     temp = cut[1]-48;
     if(strcmp("zero", cut)==0){
