@@ -51,7 +51,7 @@ char *int2bin(int a, char *buffer, int buf_size);
 char *intTobin(int input);
 /************************ MAIN ************************/
 int main() {
-    char filename[20] ="a.asm";
+    char filename[20] ="example5.s";
     int dataSectionSize = countDataSection(filename);
     scanLabels(filename);
 
@@ -88,12 +88,12 @@ int main() {
     	return -1;
 	}
 
-    showInstructions();
-    return 0;
+    // showInstructions();
+    // return 0;
 
     FILE *f = fopen("output.mcode", "w");
     fprintf(f, "%s\n", intTobin(instr_index*4));
-	fprintf(f, "%s\n", intTobin(dataSectionSize*4));
+    fprintf(f, "%s\n", intTobin(dataSectionSize*4));
 
     int i;
     for (i=0; i<instr_index; i++) {
@@ -344,8 +344,12 @@ void assemble(char *instruction){
       // lui $rs, upper( big )
       // ori $rs, $rs, lower( big )
       int imm = immToInt(three);
-      makeI_type(15, 0, regToInt(two), (imm>>16));                   // lui instruction
-      makeI_type(13, regToInt(two), regToInt(two), (imm & 65535));   // ori instruction
+      if ((imm & 65535) == 0) { // if lower 16bit is 0x0000
+          makeI_type(15, 0, regToInt(two), (imm>>16));                   // lui instruction
+      } else {
+          makeI_type(15, 0, regToInt(two), (imm>>16));                   // lui instruction
+          makeI_type(13, regToInt(two), regToInt(two), (imm & 65535));   // ori instruction
+      }
 
   	} else if (strcmp(one, "move") == 0) {
       // move with R-Type add
@@ -470,6 +474,7 @@ void assemble(char *instruction){
          ori $2, $2, 0x0004
         */
         int location = labelToIntAddr(three);                                   // absolute label address
+        //printf("Location:%d\n",location);
         if ((location & 65535) == 0) { // if lower 16bit address is 0x0000
             makeI_type(15, 0, regToInt(two), (location>>16));                   // lui instruction
         } else {
